@@ -46,6 +46,7 @@ AC_TYPE_LONG_LONG_INT
 AC_SEARCH_LIBS([ioperm], [ioperm])
 AC_SEARCH_LIBS([dlopen], [dl])
 AC_SEARCH_LIBS([openpty], [util])
+AC_SEARCH_LIBS([curl_easy_init], [curl])
 
 AC_CHECK_HEADERS([sys/socket.h])
 AC_CHECK_HEADERS([elf.h])
@@ -136,6 +137,9 @@ m4_define([HIDAPI_ADAPTERS],
 
 m4_define([HIDAPI_USB1_ADAPTERS],
 	[[[kitprog], [Cypress KitProg Programmer], [KITPROG]]])
+
+m4_define([WAPPSTO_ADAPTERS],
+        [[[wappsto], [Wappsto Programmer and Debugger], [WAPPSTO]]])
 
 m4_define([LIBFTDI_ADAPTERS],
 	[[[usb_blaster], [Altera USB-Blaster Compatible], [USB_BLASTER]],
@@ -252,6 +256,7 @@ AC_ARG_ADAPTERS([
   USB0_ADAPTERS,
   HIDAPI_ADAPTERS,
   HIDAPI_USB1_ADAPTERS,
+  WAPPSTO_ADAPTERS,
   LIBFTDI_ADAPTERS,
   LIBFTDI_USB1_ADAPTERS
   LIBGPIOD_ADAPTERS,
@@ -697,6 +702,7 @@ PKG_CHECK_MODULES([LIBFTDI], [libftdi1], [
 ])
 
 PKG_CHECK_MODULES([LIBGPIOD], [libgpiod], [use_libgpiod=yes], [use_libgpiod=no])
+PKG_CHECK_MODULES([LIBCURL], [libcurl], [use_libcurl=yes], [use_libcurl=no])
 
 PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 	[use_libjaylink=yes], [use_libjaylink=no])
@@ -726,6 +732,7 @@ PROCESS_ADAPTERS([USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
 PROCESS_ADAPTERS([USB0_ADAPTERS], ["x$use_libusb0" = "xyes"], [libusb-0.1])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
+PROCESS_ADAPTERS([WAPPSTO_ADAPTERS], ["x$use_libcurl" = "xyes"], [libcurl])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [libgpiod])
@@ -869,7 +876,7 @@ echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS, USB0_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
-	LIBGPIOD_ADAPTERS,
+	LIBGPIOD_ADAPTERS, WAPPSTO_ADAPTERS,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS,
 	OPTIONAL_LIBRARIES],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))

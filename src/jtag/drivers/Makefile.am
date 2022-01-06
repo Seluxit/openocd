@@ -192,6 +192,9 @@ endif
 if XDS110
 DRIVERFILES += %D%/xds110.c
 endif
+if WAPPSTO
+DRIVERFILES += %D%/wappsto.c
+endif
 
 DRIVERHEADERS = \
 	%D%/bitbang.h \
