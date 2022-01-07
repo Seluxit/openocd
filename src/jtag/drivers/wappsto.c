@@ -125,6 +125,7 @@ static int wappsto_data_request(const char* mode, uint8_t* data, uint16_t len) {
 
 static int wappsto_send_init(void)
 {
+    LOG_DEBUG("%s", __func__);
     int res = wappsto_send_command("init", 0);
 
     if(res != ERROR_OK) {
@@ -137,6 +138,7 @@ static int wappsto_send_init(void)
 
 static int wappsto_get_info(void)
 {
+    LOG_DEBUG("%s", __func__);
     int res = wappsto_send_command("info", 0);
 
     if(res != ERROR_OK) {
@@ -162,11 +164,7 @@ static int wappsto_swd_queue_run(void)
     for(size_t i=0; i<wappsto_queue_length; i++) {
         struct wappsto_queue_entry *e = &wappsto_queue[i];
         char *pkt = (char*)&wappsto_handle->packet_buffer[packet_size];
-        LOG_DEBUG_IO("0x%02X (%s) - 0x%08X",
-            e->cmd,
-            e->cmd & SWD_CMD_RnW ? "R" : "W",
-            e->data
-        );
+
         pkt[0] = e->cmd | SWD_CMD_START | SWD_CMD_PARK;
         packet_size++;
         if(!(e->cmd & SWD_CMD_RnW)) {
@@ -187,10 +185,20 @@ static int wappsto_swd_queue_run(void)
 
             if(e->cmd & SWD_CMD_RnW) {
                 if(e->dst) {
+                    LOG_DEBUG_IO("0x%02X (%s) - 0x%08X",
+                        e->cmd,
+                        e->cmd & SWD_CMD_RnW ? "R" : "W",
+                        *e->dst
+                    );
                     sscanf(&wappsto_read_buffer[packet_size],"%08X", e->dst);
                 }
                 packet_size+=8;
             } else {
+                LOG_DEBUG_IO("0x%02X (%s) - 0x%08X",
+                    e->cmd,
+                    e->cmd & SWD_CMD_RnW ? "R" : "W",
+                    e->data
+                );
                 if(wappsto_read_buffer[packet_size+1] == '0') {
                     ret = ERROR_FAIL;
                 }
@@ -246,6 +254,7 @@ static int wappsto_swd_init(void)
 
 static int wappsto_swd_switch_seq(enum swd_special_seq seq)
 {
+    LOG_DEBUG("Sending swd seq %d", seq);
     return wappsto_send_command("cmd", seq);
 }
 
