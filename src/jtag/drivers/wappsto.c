@@ -165,7 +165,7 @@ static int wappsto_swd_queue_run(void)
         struct wappsto_queue_entry *e = &wappsto_queue[i];
         char *pkt = (char*)&wappsto_handle->packet_buffer[packet_size];
 
-        pkt[0] = e->cmd | SWD_CMD_START | SWD_CMD_PARK;
+        pkt[0] = e->cmd;
         packet_size++;
         if(!(e->cmd & SWD_CMD_RnW)) {
             packet_size+=4;
@@ -185,12 +185,17 @@ static int wappsto_swd_queue_run(void)
 
             if(e->cmd & SWD_CMD_RnW) {
                 if(e->dst) {
+                    sscanf(&wappsto_read_buffer[packet_size],"%08X", e->dst);
                     LOG_DEBUG_IO("0x%02X (%s) - 0x%08X",
                         e->cmd,
                         e->cmd & SWD_CMD_RnW ? "R" : "W",
                         *e->dst
                     );
-                    sscanf(&wappsto_read_buffer[packet_size],"%08X", e->dst);
+                } else {
+                    LOG_DEBUG_IO("0x%02X (%s) - 0x00000000",
+                        e->cmd,
+                        e->cmd & SWD_CMD_RnW ? "R" : "W"
+                    );
                 }
                 packet_size+=8;
             } else {
@@ -213,7 +218,7 @@ static int wappsto_swd_queue_run(void)
     return ret;
 }
 
-static void wappsto_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
+static void wappsto_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
 {
     if (wappsto_queue_length == WAPPSTO_QUEUE_SIZE) {
         if(wappsto_swd_queue_run() != ERROR_OK) {
@@ -224,11 +229,21 @@ static void wappsto_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 
     struct wappsto_queue_entry *e = &wappsto_queue[wappsto_queue_length++];
 
-    e->cmd = cmd;
+    e->cmd = cmd | SWD_CMD_START | SWD_CMD_PARK;
     e->data = data;
     if(e->cmd & SWD_CMD_RnW) {
         e->dst = dst;
     } else {
+        e->dst = NULL;
+    }
+
+    if (cmd & SWD_CMD_APnDP) {
+        if (ap_delay_clk == 0)
+            return;
+        LOG_DEBUG("Add %d idle cycles", ap_delay_clk);
+        e = &wappsto_queue[wappsto_queue_length++];
+        e->cmd = 0;
+        e->data = ap_delay_clk;
         e->dst = NULL;
     }
 }
@@ -237,14 +252,14 @@ static void wappsto_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 {
     queue_read++;
     assert(cmd & SWD_CMD_RnW);
-    wappsto_swd_queue_cmd(cmd, value, 0);
+    wappsto_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
 static void wappsto_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
     queue_write++;
     assert(!(cmd & SWD_CMD_RnW));
-    wappsto_swd_queue_cmd(cmd, NULL, value);
+    wappsto_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 
 static int wappsto_swd_init(void)
